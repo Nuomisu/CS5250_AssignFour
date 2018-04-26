@@ -18,7 +18,7 @@ Revision 2:
     Thanks Lee Wei Ping for trying and pointing out the difficulty & ambiguity with future_prediction SRTF.
 '''
 import sys
-from collections import defaultdict
+from heapq import heappush, heappop
 
 input_file = 'input.txt'
 
@@ -32,7 +32,8 @@ class Process:
         self.last_scheduled_time = arrive_time
     #for printing purpose
     def __repr__(self):
-        return ('[id %d : arrive_time %d,  burst_time %d]'%(self.id, self.arrive_time, self.burst_time))
+        return ('[id %d : arrive_time %d,  burst_time %d, last_time %d, remain_time %d]'%(self.id, self.arrive_time, 
+            self.burst_time, self.last_scheduled_time, self.remain_time))
 
 def FCFS_scheduling(process_list):
     #store the (switching time, proccess_id) pair
@@ -96,7 +97,64 @@ def RR_scheduling(process_list, time_quantum ):
     return schedule, average_waiting_time
 
 def SRTF_scheduling(process_list):
-    return (["to be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process "], 0.0)
+    schedule = []
+    current_time = 0
+    waiting_time = 0
+    queue = []
+    if (len(process_list) == 0):
+        return schedule, float(waiting_time)
+    current_job = process_list[0]
+    schedule.append((current_job.arrive_time, current_job.id))
+    for job in process_list[1:]:
+        start_time = current_job.last_scheduled_time
+        current_time = job.arrive_time
+        # find running job
+        #print "================"
+        #print "find running job", current_time, start_time, current_job
+        while (current_time > start_time + current_job.remain_time):
+            # if current running is done
+            start_time = start_time+current_job.remain_time
+            if (len(queue) > 0):
+                remain, current_job = heappop(queue)
+                schedule.append((start_time, current_job.id))
+                waiting_time += start_time - current_job.last_scheduled_time
+            else:
+                current_job = None
+                break
+        # if current not finish, check the remain_time
+        if current_job != None:
+            current_job.remain_time -= current_time - start_time
+            #print "current_job", current_job
+            waiting_time += start_time - current_job.last_scheduled_time
+            if current_job.remain_time <= job.remain_time:
+                # no switch
+                #print "no swtich", job
+                heappush(queue, (job.remain_time, job))
+                current_job.last_scheduled_time = current_time
+            else:
+                # swtich to new job
+                #print "swtich", job
+                current_job.last_scheduled_time = current_time
+                heappush(queue, (current_job.remain_time, current_job))
+                current_job = job
+                schedule.append((current_time, current_job.id))
+        else:
+            #just start next job
+            current_job = job
+            schedule.append((current_time, current_job.id))
+            #print current_job, schedule
+    #print "finish all jobs ============"
+    #print queue, current_time
+    while (len(queue) > 0):
+        # finish all jobs in the queue
+        start_time = current_time+current_job.remain_time
+        remain, current_job = heappop(queue)
+        schedule.append((start_time, current_job.id))
+        waiting_time += start_time - current_job.last_scheduled_time
+        current_time = start_time
+
+    average_waiting_time = waiting_time/float(len(process_list))
+    return schedule, average_waiting_time
 
 def SJF_scheduling(process_list, alpha):
     init_guess = 5
@@ -171,23 +229,16 @@ def main(argv):
     FCFS_schedule, FCFS_avg_waiting_time =  FCFS_scheduling(process_list)
     write_output('FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time )
     print ("simulating RR ----")
+    process_list = read_input()
     RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list,time_quantum = 2)
     write_output('RR.txt', RR_schedule, RR_avg_waiting_time )
     print ("simulating SRTF ----")
+    process_list = read_input()
     SRTF_schedule, SRTF_avg_waiting_time =  SRTF_scheduling(process_list)
     write_output('SRTF.txt', SRTF_schedule, SRTF_avg_waiting_time )
     print ("simulating SJF ----")
-    a = 0.01
-    min = 1000
-    min_a = 0
-    while a < 1.0:
-        SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, alpha = a)
-        print a, SJF_avg_waiting_time
-        if SJF_avg_waiting_time < min:
-            min = SJF_avg_waiting_time
-            min_a = a
-        a += 0.01
-        #write_output('SJF.txt', SJF_schedule, SJF_avg_waiting_time )
-    print min_a, min
+    process_list = read_input()
+    SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, alpha = 0.5)
+    write_output('SJF.txt', SJF_schedule, SJF_avg_waiting_time )
 if __name__ == '__main__':
     main(sys.argv[1:])
