@@ -32,7 +32,7 @@ class Process:
         self.last_scheduled_time = arrive_time
     #for printing purpose
     def __repr__(self):
-        return ('[id %d : arrive_time %d,  burst_time %d, last_time %d, remain_time %d]'%(self.id, self.arrive_time, 
+        return ('[id %d : arrive_time %d,  burst_time %d, last_time %d, remain_time %d]'%(self.id, self.arrive_time,
             self.burst_time, self.last_scheduled_time, self.remain_time))
 
 def FCFS_scheduling(process_list):
@@ -89,7 +89,7 @@ def RR_scheduling(process_list, time_quantum ):
             running_task.last_scheduled_time = current_time
             # check if new task come
             while (current_job < len(process_list) -1 and current_time >= process_list[current_job+1].arrive_time):
-                current_job += 1 
+                current_job += 1
                 queue.append(process_list[current_job])
             if (running_task.remain_time > 0):
                 queue.append(running_task)
@@ -157,7 +157,7 @@ def SRTF_scheduling(process_list):
     return schedule, average_waiting_time
 
 def SJF_scheduling(process_list, alpha):
-    init_guess = 5
+    init_guess = 10
     schedule = []
     current_time = 0
     waiting_time = 0
@@ -194,9 +194,9 @@ def SJF_scheduling(process_list, alpha):
             waiting_time += current_time - min_task.arrive_time
             current_time += min_task.burst_time
             # update predict for n+1
-            predict[min_task.id] = alpha*min_task.burst_time + (1-alpha)*min_burst
+            predict[min_task.id] = alpha*float(min_task.burst_time) + (1-alpha)*float(min_burst)
             while (current_job < len(process_list) -1 and current_time >= process_list[current_job+1].arrive_time):
-                current_job += 1 
+                current_job += 1
                 queue.append(process_list[current_job])
         #print current_time, queue
     average_waiting_time = waiting_time/float(len(process_list))
@@ -229,16 +229,33 @@ def main(argv):
     FCFS_schedule, FCFS_avg_waiting_time =  FCFS_scheduling(process_list)
     write_output('FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time )
     print ("simulating RR ----")
-    process_list = read_input()
-    RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list,time_quantum = 2)
+    min_RR_avg_waiting_time=9999
+    min_i = -1
+    for i in range(10):
+        process_list = read_input()
+        RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list, i+1)
+        print "Q=",i+1, " RR_avg_waiting_time=", RR_avg_waiting_time
+        if RR_avg_waiting_time < min_RR_avg_waiting_time:
+            min_RR_avg_waiting_time = RR_avg_waiting_time
+            min_i = i+1
+    print "min for rr ", min_i, " ", min_RR_avg_waiting_time
+    print "=========================================="
     write_output('RR.txt', RR_schedule, RR_avg_waiting_time )
     print ("simulating SRTF ----")
     process_list = read_input()
     SRTF_schedule, SRTF_avg_waiting_time =  SRTF_scheduling(process_list)
     write_output('SRTF.txt', SRTF_schedule, SRTF_avg_waiting_time )
     print ("simulating SJF ----")
-    process_list = read_input()
-    SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, alpha = 0.5)
+    min_SJF_avg_waiting_time = 9999
+    min_alpha = -1
+    for j in range(11):
+        process_list = read_input()
+        SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, j*1.0/10)
+        print "alpha=",j*1.0/10, " SJF_avg_waiting_time=", SJF_avg_waiting_time
+        if SJF_avg_waiting_time < min_SJF_avg_waiting_time:
+            min_SJF_avg_waiting_time = SJF_avg_waiting_time
+            min_alpha = j*1.0/10
+    print "min for sjf ", min_alpha, " ", min_SJF_avg_waiting_time
     write_output('SJF.txt', SJF_schedule, SJF_avg_waiting_time )
 if __name__ == '__main__':
     main(sys.argv[1:])
